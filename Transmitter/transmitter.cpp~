@@ -5,6 +5,10 @@
 #include <fstream>
 #include <sstream>
 #include <bitset>
+#include <algorithm>
+#include <iterator>
+
+using namespace std;
 
 //start of consts ----->
 static const char ascii_chars[] = 
@@ -15,7 +19,7 @@ static const char ascii_chars[] =
 
 static const int RAW_FILE_SIZE = 1024;
 static const int ARRAY_SIZE = RAW_FILE_SIZE / 4;
-std::string dataStream[ARRAY_SIZE];
+string dataStream[ARRAY_SIZE];
 
 //size of payload parts in bytes
 static const int HEADER_SIZE_BYTES = 3;
@@ -26,8 +30,8 @@ static const int TRAILER_SIZE_BYTES = 1;
 static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
 
 static const int ORIGIN_PORT = 1994;
-std::string ORIGIN_IP = "127.0.0.1";
-static const std::string DESTINATION_IP = "127.0.0.1";
+string ORIGIN_IP = "127.0.0.1";
+static const string DESTINATION_IP = "127.0.0.1";
 //<----- end of consts
 
 //begin random file generation ----->
@@ -39,9 +43,9 @@ char generate_random_ascii()
 }
 
 //generate a 1024 alphanumeric string
-std::string generate_random_string()
+string generate_random_string()
 {
-	std::string holder;
+	string holder;
 	srand(time(0));
 
 	for(int i = 0; i < 1024; i++)
@@ -54,18 +58,18 @@ std::string generate_random_string()
 //write the generated string to a txt file
 void generate_output_file()
 {
-	std::string message = generate_random_string();
+	string message = generate_random_string();
 
-	std::cout << "String generated: " << message << std::endl;
-	std::cout << "Chars generated: " << message.size() << std::endl;
+	cout << "String generated: " << message << endl;
+	cout << "Chars generated: " << message.size() << endl;
 
-	std::ofstream out;
+	ofstream out;
 	out.open("generated.txt");
 	
 	if(out.fail()){
-		std::cout << "Error in opening file" << std::endl;
+		cout << "Error in opening file" << endl;
 	} else {
-		std::cout << "File created successfully" << std::endl;
+		cout << "File created successfully" << endl;
 		out << message;
 		out.close();
 	}
@@ -74,10 +78,10 @@ void generate_output_file()
 //<---- end file generation
 
 //start of data transmission ----->
-std::string get_data()
+string get_data()
 {
-	std::string output;
-	std::ifstream in;
+	string output;
+	ifstream in;
 	in.open("generated.txt");
 	
 	while(!in.eof()){
@@ -90,12 +94,12 @@ std::string get_data()
 
 struct DATA_PACKET 
 {
-	std::string header;
-	std::string data;
-	std::string trailer;
+	string header;
+	string data;
+	string trailer;
 };
 
-void split_data(std::string data)
+void split_data(string data)
 {	
 	//split each 4 characters into array elements
 	//[0:xxxx][1:xxxx]...[255:xxxx]
@@ -104,11 +108,11 @@ void split_data(std::string data)
 	}
 }
 
-std::string get_padding(std::string data, int size)
+string get_padding(string data, int size)
 {
 	if(data.length() < size)
 	{
-		std::cout << "data size is less than the determined size, attempting to pad" << std::endl;
+		cout << "data size is less than the determined size, attempting to pad" << endl;
 		if(data.length() < size)
 		{
 			for(int i = data.length(); i < size; i++)
@@ -119,27 +123,52 @@ std::string get_padding(std::string data, int size)
 	}
 	else if(data.length() == size)
 	{
-		std::cout << "data is equivalent to size, do nothing" << std::endl;
+		cout << "data is equivalent to size, do nothing" << endl;
 	}
 	return data;
 }
 
-std::string generate_header(int sequenceNumber)
+string generate_header(int sequenceNumber)
 {
-	return get_padding(std::to_string(sequenceNumber), HEADER_SIZE_BYTES);
+	return get_padding(to_string(sequenceNumber), HEADER_SIZE_BYTES);
 }
 
-std::string generate_data_packet_data(std::string data)
+string generate_data_packet_data(string data)
 {
 	return data;
 }
 
-std::string generate_trailer(std::string checksum)
-{	
-	return checksum;
+string convert_ascii_to_binary(char data)
+{
+	//convert each char in string to binary representation of ascii
+	int bits[8];
+	string binary;
+	//ensure to reverse representation
+	for(int i = 0; i < 8; i++)
+	{
+		bits[i] = ((1<<i) & data) !=0 ? 1 : 0;
+	}
+
+	for(int i = 8; i > 0; i--)
+	{
+		binary += bits[i];
+	}
+
+	return binary;
 }
 
-void generate_checksum(){}
+string generate_trailer(string data)
+{	
+	char dataArray[] = new char[data];
+	for(int i = 0; i < data.length() * 8; i++)
+	{
+		cout << dataArray[i] << endl;
+		cout << convert_ascii_to_binary(dataArray[i]) << endl << endl;
+	}
+
+	return "0";
+}
+
 void open_socket(){}
 void gremlin_function(){}
 void send_data(){}
@@ -159,23 +188,22 @@ int main()
 	//handle each data packet and parse accordingly
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
-		std::cout << i << ": " << get_padding(dataStream[i], DATA_SIZE_BYTES) << std::endl;
+		cout << i << ": " << get_padding(dataStream[i], DATA_SIZE_BYTES) << endl;
 	}
 
 	//parse data to packets if successful
 	DATA_PACKET dataPacket;
-	int i = 0;
-	
-
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
 		dataPacket.header = generate_header(i);
 		dataPacket.data = generate_data_packet_data(dataStream[i]);
-		std::cout << "HEADER \"" << dataPacket.header  << "\" with size in bytes " << dataPacket.header.length() << std::endl;
-		std::cout << "DATA \"" << dataPacket.data  << "\" with size in bytes " << dataPacket.data.length() << std::endl;
+		dataPacket.trailer = generate_trailer(dataStream[i]);
+		cout << "HEADER \"" << dataPacket.header  << "\" with size in bytes " << dataPacket.header.length() << endl;
+		cout << "DATA \"" << dataPacket.data  << "\" with size in bytes " << dataPacket.data.length() << endl;
+		cout << "TRAILER \"" << dataPacket.trailer  << "\" with size in bytes " << dataPacket.trailer.length() << endl << endl;
 	}
 	
-	//std::cout << "TRAILER \"" << dataPacket.trailer << "\" with size in bytes " << dataPacket.trailer.length() << std::endl;
+	//cout << "TRAILER \"" << dataPacket.trailer << "\" with size in bytes " << dataPacket.trailer.length() << endl;
 
 	//send
 
