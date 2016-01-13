@@ -114,26 +114,6 @@ void split_data(string data)
 	}
 }
 
-string get_padding(string data, int size)
-{
-	if(data.length() < size)
-	{
-		cout << "data size is less than the determined size, attempting to pad" << endl;
-		if(data.length() < size)
-		{
-			for(int i = data.length(); i < size; i++)
-			{
-				data = "0" + data;
-			}	
-		}
-	}
-	else if(data.length() == size)
-	{
-		cout << "data is equivalent to size, do nothing" << endl;
-	}
-	return data;
-}
-
 bitset<HEADER_SIZE_BITS> generate_header(int sequenceNumber)
 {
 	return bitset<HEADER_SIZE_BITS>(sequenceNumber);
@@ -152,9 +132,47 @@ bitset<DATA_SIZE_BITS> generate_data(string data)
 		bits += x.to_string();
 	}
 
-	cout << data << " represented as " << bits << endl;
-
 	return bitset<DATA_SIZE_BITS>(bits);
+}
+
+bitset<TRAILER_SIZE_BITS> generate_checksum(string data, int length){
+	bitset<16> polynomial(65535);
+	bitset<16> remainder(data);
+	bitset<16> divisor(128);
+
+	cout << polynomial << " " << remainder << " " << divisor << endl;
+
+	for(unsigned int bit = 8; bit > 0; bit--)
+	{
+		//check if uppermost bit is 1
+		if((remainder & divisor) == 1)
+		{
+			//XOR remainder with divisor
+			remainder ^= polynomial;
+		}
+		//shift bit into remainder
+		remainder = (remainder << 1);
+	}
+	
+    	return (remainder >> 4);
+}
+
+bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
+{	
+	char charArray[data.length()];
+	data.copy(charArray, data.length());
+
+	string bits;
+
+	for(int i = 0; i < data.length(); i++)
+	{	
+		bitset<8> x(charArray[i]);
+		bits += x.to_string();
+	}
+
+	string data_concat = bits.substr(0, 8);
+	
+	return bitset<TRAILER_SIZE_BITS>(generate_checksum(data_concat, data_concat.length()));
 }
 
 void open_socket(){}
@@ -169,12 +187,6 @@ int main()
 	//generate and parse data
 	generate_output_file();
 	split_data(get_data());
-	
-	//handle each data packet and parse accordingly to strings
-	for(int i = 0; i < ARRAY_SIZE; i++)
-	{
-		cout << i << ": " << get_padding(dataStream[i], DATA_SIZE_BYTES) << endl;
-	}
 
 	//set up sockets
 
@@ -182,16 +194,17 @@ int main()
 	DATA_PACKET dataPacket;
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
-		dataPacket.header_string = i;
+		dataPacket.header_string = to_string(i);
 		dataPacket.data_string = dataStream[i];
 		dataPacket.trailer_string = dataStream[i];
 
 		dataPacket.header = generate_header(i);
 		dataPacket.data = generate_data(dataStream[i]);
+		dataPacket.trailer = generate_trailer(dataStream[i]);
 
-		//dataPacket.header = generate_header(i);
-		cout << "HEADER " << dataPacket.header.to_string() << endl;
-		cout << "DATA " << dataPacket.data.to_string() << endl << endl;
+		cout << "HEADER: " << dataPacket.header_string << " parsed to " << dataPacket.header  << " (" << dataPacket.header.size() << " bits)" << endl;
+		cout << "DATA: " << dataPacket.data_string << " parsed to " << dataPacket.data << " (" << dataPacket.data.size() << " bits)" << endl;
+		cout << "TRAILER: checksum for " << dataPacket.trailer_string << " parsed to " << dataPacket.trailer << " (" << dataPacket.trailer.size() << " bits)" << endl << endl;
 	}
 
 	//send
