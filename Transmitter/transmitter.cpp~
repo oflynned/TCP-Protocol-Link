@@ -22,11 +22,11 @@ static const int ARRAY_SIZE = RAW_FILE_SIZE / 4;
 string dataStream[ARRAY_SIZE];
 
 //size of payload parts in bytes
-static const int HEADER_SIZE_BYTES = 3;
+static const int HEADER_SIZE_BYTES = 2;
 static const int HEADER_SIZE_BITS = HEADER_SIZE_BYTES * 8;
 static const int DATA_SIZE_BYTES = 4;
 static const int DATA_SIZE_BITS = DATA_SIZE_BYTES * 8;
-static const int TRAILER_SIZE_BYTES = 1;
+static const int TRAILER_SIZE_BYTES = 2;
 static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
 
 static const int ORIGIN_PORT = 1994;
@@ -94,9 +94,15 @@ string get_data()
 
 struct DATA_PACKET 
 {
-	string header;
-	string data;
-	string trailer;
+	//data to be sent
+	bitset<HEADER_SIZE_BITS> header;
+	bitset<DATA_SIZE_BITS> data;
+	bitset<TRAILER_SIZE_BITS> trailer;
+	
+	//reference value for debug
+	string header_string;
+	string data_string;
+	string trailer_string;
 };
 
 void split_data(string data)
@@ -128,45 +134,27 @@ string get_padding(string data, int size)
 	return data;
 }
 
-string generate_header(int sequenceNumber)
+bitset<HEADER_SIZE_BITS> generate_header(int sequenceNumber)
 {
-	return get_padding(to_string(sequenceNumber), HEADER_SIZE_BYTES);
+	return bitset<HEADER_SIZE_BITS>(sequenceNumber);
 }
 
-string generate_data_packet_data(string data)
+bitset<DATA_SIZE_BITS> generate_data(string data)
 {
-	return data;
-}
+	char charArray[data.length()];
+	data.copy(charArray, data.length());
 
-string convert_ascii_to_binary(char data)
-{
-	//convert each char in string to binary representation of ascii
-	int bits[8];
-	string binary;
-	//ensure to reverse representation
-	for(int i = 0; i < 8; i++)
-	{
-		bits[i] = ((1<<i) & data) !=0 ? 1 : 0;
+	string bits;
+
+	for(int i = 0; i < data.length(); i++)
+	{	
+		bitset<8> x(charArray[i]);
+		bits += x.to_string();
 	}
 
-	for(int i = 8; i > 0; i--)
-	{
-		binary += bits[i];
-	}
+	cout << bits << endl;
 
-	return binary;
-}
-
-string generate_trailer(string data)
-{	
-	char dataArray[] = new char[data];
-	for(int i = 0; i < data.length() * 8; i++)
-	{
-		cout << dataArray[i] << endl;
-		cout << convert_ascii_to_binary(dataArray[i]) << endl << endl;
-	}
-
-	return "0";
+	return bitset<DATA_SIZE_BITS>(bits);
 }
 
 void open_socket(){}
@@ -181,29 +169,30 @@ int main()
 	//generate and parse data
 	generate_output_file();
 	split_data(get_data());
-
-	//set up sockets
 	
-	
-	//handle each data packet and parse accordingly
+	//handle each data packet and parse accordingly to strings
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
 		cout << i << ": " << get_padding(dataStream[i], DATA_SIZE_BYTES) << endl;
 	}
 
-	//parse data to packets if successful
+	//set up sockets
+
+	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
+		dataPacket.header_string = i;
+		dataPacket.data_string = dataStream[i];
+		dataPacket.trailer_string = dataStream[i];
+
 		dataPacket.header = generate_header(i);
-		dataPacket.data = generate_data_packet_data(dataStream[i]);
-		dataPacket.trailer = generate_trailer(dataStream[i]);
-		cout << "HEADER \"" << dataPacket.header  << "\" with size in bytes " << dataPacket.header.length() << endl;
-		cout << "DATA \"" << dataPacket.data  << "\" with size in bytes " << dataPacket.data.length() << endl;
-		cout << "TRAILER \"" << dataPacket.trailer  << "\" with size in bytes " << dataPacket.trailer.length() << endl << endl;
+		dataPacket.data = generate_data(dataStream[i]);
+
+		//dataPacket.header = generate_header(i);
+		cout << "HEADER " << dataPacket.header.to_string() << endl;
+		cout << "DATA " << dataPacket.data.to_string() << endl << endl;
 	}
-	
-	//cout << "TRAILER \"" << dataPacket.trailer << "\" with size in bytes " << dataPacket.trailer.length() << endl;
 
 	//send
 
