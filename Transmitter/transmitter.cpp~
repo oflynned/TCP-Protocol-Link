@@ -1,3 +1,4 @@
+//data and bit manipulation
 #include <iostream>
 #include <string>
 #include <ctime>
@@ -7,6 +8,17 @@
 #include <bitset>
 #include <algorithm>
 #include <iterator>
+
+//TCP connection handling
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <arpa/inet.h>
 
 using namespace std;
 
@@ -28,10 +40,15 @@ static const int DATA_SIZE_BYTES = 4;
 static const int DATA_SIZE_BITS = DATA_SIZE_BYTES * 8;
 static const int TRAILER_SIZE_BYTES = 2;
 static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
+static const int MAX_DATA_PACKET_SIZE_BYTES = HEADER_SIZE_BYTES + DATA_SIZE_BYTES + TRAILER_SIZE_BYTES;
+static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
 static const int ORIGIN_PORT = 1994;
 string ORIGIN_IP = "127.0.0.1";
 static const string DESTINATION_IP = "127.0.0.1";
+
+bool _ack = false;
+string _echo = "";
 //<----- end of consts
 
 //begin random file generation ----->
@@ -77,7 +94,7 @@ void generate_output_file()
 
 //<---- end file generation
 
-//start of data transmission ----->
+//start of data encapsulation ----->
 string get_data()
 {
 	string output;
@@ -173,7 +190,6 @@ string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data)
 		//invoked -- flip checksum bits	
 		remainder = ~remainder;
 		cout << "Gremlin function invoked! CRC is now " << remainder.to_string() << endl;
-		cout << random << endl;
 	}
 	return remainder.to_string();
 }
@@ -196,9 +212,45 @@ bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
 	return bitset<TRAILER_SIZE_BITS>(gremlin_checksum(generate_checksum(data_concat, data_concat.length())));
 }
 
-void open_socket(){}
-void send_data(){}
-void receive_ack(){}
+//<----- end of data encapsulation
+
+//start of data transmission ----->
+
+void setAck(bool ack){ _ack = ack; }
+bool isAck(){ return _ack; }
+void setEcho(string echo){ _echo = echo; }
+string getEcho(){ return _echo; }
+
+void open_socket()
+{
+	cout << "Opening connection..." << endl;
+}
+
+void send_data(int sequenceNumber, string data_packet)
+{
+	cout << "Sending packet #" << sequenceNumber << "..." << endl;	
+}
+
+void receive_ack()
+{
+	cout << "Acknowledgement received..." << endl;
+
+	//echo ack from server
+
+	//handle ack accordingly
+	if(!isAck())
+	{
+		cout << "Echo frame corruption, retrying..." << endl;
+	}
+	else {
+		cout << "Echo good data integrity, continuing..." << endl;
+	}
+}
+
+void close_socket()
+{
+	cout << "Closing connection..." << endl;
+}
 
 //<----- end of data transmission 
 
@@ -208,13 +260,16 @@ int main()
 	generate_output_file();
 	split_data(get_data());
 
-	//set up sockets
-
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
 	for(int i = 0; i < ARRAY_SIZE; i++)
 	{
-		cout << "Packet #" << i << endl << endl;
+		//set up sockets
+		cout << "Packet #" << i << endl;
+		open_socket();
+		cout << endl;
+
+		//data processing
 		
 		dataPacket.header_string = to_string(i);
 		dataPacket.data_string = dataStream[i];
@@ -234,16 +289,18 @@ int main()
 		dataPacket.data_frame = dataPacket.header.to_string() + dataPacket.data.to_string() + dataPacket.trailer.to_string();
 		cout << "dataframe for packet #" << dataPacket.header_string << endl;
 		cout << dataPacket.data_frame << endl << endl;
-		cout << "*************************************" << endl << endl;
+
+		//send the ith packet	
+		send_data(i, dataPacket.data_frame);
+
+		//wait and receive ack, if echo has integrity, follow through with next packet
+		receive_ack();
+
+		//reset
+		close_socket();	
+
+		cout << endl << "************************************************************" << endl << endl;
 	}
 
-	//send
-
-	//wait and receive ack
-
-	//iff has next packet, send data
-
-	//reset
-	
 	return 0;
 }
