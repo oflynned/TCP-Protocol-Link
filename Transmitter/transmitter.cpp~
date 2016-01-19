@@ -1,13 +1,11 @@
 //data and bit manipulation
 #include <iostream>
-#include <string>
+#include <cstring>
 #include <ctime>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <bitset>
-#include <algorithm>
-#include <iterator>
 
 //TCP connection handling
 #include <stdio.h>
@@ -43,9 +41,17 @@ static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
 static const int MAX_DATA_PACKET_SIZE_BYTES = HEADER_SIZE_BYTES + DATA_SIZE_BYTES + TRAILER_SIZE_BYTES;
 static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
-static const int ORIGIN_PORT = 1994;
+static const int PORT = 2016;
 string ORIGIN_IP = "127.0.0.1";
-static const string DESTINATION_IP = "127.0.0.1";
+string DESTINATION_IP = "127.0.0.1";
+
+struct sockaddr_in client_addr;
+socklen_t addr_len = sizeof(struct sockaddr);
+int client_socket;
+int count;
+
+const static int BUFFER_SIZE = 1024;
+char buffer[BUFFER_SIZE];
 
 bool _ack = false;
 string _echo = "";
@@ -221,14 +227,36 @@ bool isAck(){ return _ack; }
 void setEcho(string echo){ _echo = echo; }
 string getEcho(){ return _echo; }
 
+string get_allocated_ip(struct sockaddr_in client_addr)
+{
+	char address[INET_ADDRSTRLEN];
+  return inet_ntop(AF_INET, &(client_addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+}
+
 void open_socket()
 {
 	cout << "Opening connection..." << endl;
+	socket(AF_INET, SOCK_DGRAM, 0);
+	client_addr.sin_family = AF_INET;
+	client_addr.sin_port = htons(PORT);
+	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	cout << "Allocated IP " << get_allocated_ip(client_addr) << endl;
 }
 
 void send_data(int sequenceNumber, string data_packet)
 {
-	cout << "Sending packet #" << sequenceNumber << "..." << endl;	
+	cout << "Sending packet #" << sequenceNumber << "..." << endl;
+	const char* data = data_packet.c_str();
+	strcpy(buffer, data);
+	count = sendto(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
+	if(count == -1)
+	{
+	  cout << "Send error" << endl;
+	}
+	else
+	{
+	  cout << "Sent successfully" << endl;
+	}
 }
 
 void receive_ack()
@@ -236,7 +264,7 @@ void receive_ack()
 	cout << "Acknowledgement received..." << endl;
 
 	//echo ack from server
-
+  
 	//handle ack accordingly
 	if(!isAck())
 	{
@@ -250,6 +278,7 @@ void receive_ack()
 void close_socket()
 {
 	cout << "Closing connection..." << endl;
+	close(client_socket);
 }
 
 //<----- end of data transmission 
@@ -262,7 +291,8 @@ int main()
 
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
-	for(int i = 0; i < ARRAY_SIZE; i++)
+	//ARRAY_SIZE
+	for(int i = 0; i < 1; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
