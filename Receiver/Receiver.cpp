@@ -27,6 +27,8 @@ char buffer[BUFFER_SIZE];
 int server_socket, result, count;
 struct sockaddr_in server_addr, client_addr;
 
+string message;
+
 void start_listener()
 {
   close(server_socket);
@@ -114,6 +116,23 @@ string analyse_integrity(string data, string trailer)
   return "BAD";
 }
 
+void echo(string result)
+{
+		cout << "Echoing " << result << " to client..." << endl;
+		const char* reply = result.c_str();
+		strcpy(buffer, reply);
+		count = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
+		if(count == -1)
+		{
+			cout << "Send error!" << endl;		
+		}
+		else
+		{
+			cout << "Echo successful" << endl;
+		}
+
+}
+
 void receive_data()
 {
   count = recvfrom(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
@@ -130,24 +149,44 @@ void receive_data()
     data = received.substr(16, 32);
     trailer = received.substr(48, 16);
     
-    cout << "HEADER: " << binary_to_dec(header) << endl;
-    cout << "DATA: " << binary_to_ascii(data) << endl;
-    cout << "CHECKSUM IS " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
+    cout << "Packet #" << binary_to_dec(header) << "/255" << endl;
+    cout << "Data contained in payload: " << binary_to_ascii(data) << endl;
+    cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
     
-    sleep(1);
+    echo(analyse_integrity(binary_to_ascii(data), trailer));
+	
+	if(analyse_integrity(binary_to_ascii(data), trailer) == "GOOD")
+	{
+		message += binary_to_ascii(data);
+	}
+    
+   sleep(1);
   }
 }
-void save_to_file(){}
-void echo(){}
+void save_to_file(string data)
+{
+	ofstream out;
+	out.open("received.txt");
+	
+	if(out.fail()){
+		cout << "Error in opening file" << endl;
+	} else {
+		cout << "File created successfully" << endl;
+		out << data;
+		out.close();
+	}
+}
+
 void close_connection()
 {
-  close(server_socket);
+	close(server_socket);
 }
 
 int main()
 {
   start_listener();
   receive_data();
+  save_to_file(message);
   close_connection();
   return 0;
 }

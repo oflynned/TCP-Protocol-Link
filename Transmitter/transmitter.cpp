@@ -261,17 +261,25 @@ void send_data(int sequenceNumber, string data_packet)
 
 void receive_ack()
 {
-	cout << "Acknowledgement received..." << endl;
-
-	//echo ack from server
-  
-	//handle ack accordingly
-	if(!isAck())
+	cout << "Waiting for ack..." << endl;
+	count = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
+	if(count == -1)
 	{
-		cout << "Echo frame corruption, retrying..." << endl;
+		cout << "Error in acknowledgement received..." << endl;
 	}
-	else {
-		cout << "Echo good data integrity, continuing..." << endl;
+	else
+	{
+		string data = buffer;
+		cout << "data received: " << data << endl;
+		
+		if(data == "GOOD")
+		{
+			cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
+		}
+		else if(data == "BAD")
+		{
+			cout << "Server echo: BAD integrity in data, retry packet..." << endl;
+		}
 	}
 }
 
@@ -297,7 +305,7 @@ int main()
 		//set up sockets
 		cout << "Packet #" << i << endl;
 		open_socket();
-		cout << endl;
+	   sleep(1);
 
 		//data processing
 		
