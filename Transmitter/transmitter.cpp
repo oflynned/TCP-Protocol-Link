@@ -53,6 +53,7 @@ int req_send, req_recv;
 
 const static int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
+const int MAX_PACKETS = 255;
 
 //<----- end of consts
 
@@ -286,7 +287,7 @@ void receive_echo()
 	}
 }
 
-void receive_ack()
+void receive_ack(int sequenceNumber, string data)
 {
 	cout << "Waiting for ack..." << endl;
 	receive_echo();
@@ -294,21 +295,32 @@ void receive_ack()
 	memset(buffer, 0, sizeof(buffer));
 	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
 
-	string data = buffer;	
-	if(data == "GOOD")
+	string ack = buffer;	
+	if(ack == "GOOD" && sequenceNumber != MAX_PACKETS)
 	{				
 		cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
 	}
-	else if(data == "BAD")
+	else if(ack == "BAD")
 	{
-		cout << "Server echo: BAD integrity in data, retry packet..." << endl;
-	}
-}
+		cout << "Server echo: BAD integrity in data, regenerate packet..." << endl;
+		
+		//regenerate datapacket as before with a chance of the gremlin function		
+		string header = generate_header(sequenceNumber).to_string();
+		string data_packet = generate_data(dataStream[sequenceNumber]).to_string();
+		string trailer = generate_trailer(dataStream[sequenceNumber]).to_string();
+		string data_frame = header + data_packet + trailer;
+		cout << endl << "dataframe for regenerated packet (" << sequenceNumber << ")" << endl;
+		cout << data_frame << endl << endl;
 
-void close_socket()
-{
-	cout << "Closing connection..." << endl;
-  	close_connection();
+		//send the ith packet
+		cout << "Retry sending data..." << endl;	
+		send_data(sequenceNumber, data_frame);
+	}
+	else if(ack == "GOOD" && sequenceNumber == MAX_PACKETS)
+	{
+		cout << "Server echo: GOOD integrity in data, finishing transmission..." << endl;
+	}
+	close_connection();
 }
 
 //<----- end of data transmission 
@@ -321,8 +333,7 @@ int main()
 
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
-	//ARRAY_SIZE
-	for(int i = 0; i < 5; i++)
+	for(int i = 0; i < MAX_PACKETS; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
@@ -353,10 +364,11 @@ int main()
 		send_data(i, dataPacket.data_frame);
 
 		//wait and receive ack, if echo has integrity, follow through with next packet
-		receive_ack();
+		receive_ack(i, dataPacket.data_string);
+		sleep(1);
 
 		//reset
-		close_socket();	
+		close_connection();	
 
 		cout << endl << "************************************************************" << endl << endl;
 	}

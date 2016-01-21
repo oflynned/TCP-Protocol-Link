@@ -24,6 +24,7 @@ static const int SERVER_PORT = 2016;
 static const int CLIENT_PORT = 2015;
 static const int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
+const int MAX_PACKETS = 255;
 
 int server_socket, result;
 int req_send, req_recv;
@@ -180,12 +181,12 @@ void receive_data()
 		cout << "Reinitialising server listener..." << endl;
 	}
 
-	if(binary_to_dec(header) == 4)
+	if(binary_to_dec(header) == MAX_PACKETS)
 	{
 		isEnd = true;
 	}
 		
-	cout << "Packet " << binary_to_dec(header) << "/255" << endl;
+	cout << "Packet " << binary_to_dec(header) << "/" << MAX_PACKETS << endl;
 	cout << "Data contained in payload: " << binary_to_ascii(data) << endl;
 	cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
 		
@@ -195,6 +196,7 @@ void receive_data()
 	{
 		message += binary_to_ascii(data);
 	}
+	sleep(1);
 }
 void save_to_file(string data)
 {
