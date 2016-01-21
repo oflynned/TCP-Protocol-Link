@@ -196,7 +196,7 @@ void receive_data()
 	{
 		message += binary_to_ascii(data);
 	}
-	sleep(1);
+	usleep(100);
 }
 void save_to_file(string data)
 {

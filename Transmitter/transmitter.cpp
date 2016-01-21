@@ -136,6 +136,7 @@ void split_data(string data)
 	for(int i = 0; i < RAW_FILE_SIZE / 4; i++){
 		dataStream[i] = data.substr(i * 4, 4);
 	}
+	dataStream[MAX_PACKETS] = data.substr(1020, 4);
 }
 
 bitset<HEADER_SIZE_BITS> generate_header(int sequenceNumber)
@@ -333,7 +334,7 @@ int main()
 
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
-	for(int i = 0; i < MAX_PACKETS; i++)
+	for(int i = 0; i <= MAX_PACKETS; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
@@ -365,7 +366,7 @@ int main()
 
 		//wait and receive ack, if echo has integrity, follow through with next packet
 		receive_ack(i, dataPacket.data_string);
-		sleep(1);
+		usleep(100);
 
 		//reset
 		close_connection();	
