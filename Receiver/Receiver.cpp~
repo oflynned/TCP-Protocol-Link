@@ -185,25 +185,30 @@ void receive_data()
 	{
 		isEnd = true;
 	}
+	
+	string decompiled_data = binary_to_ascii(data);
 		
 	cout << "Packet " << binary_to_dec(header) << "/" << MAX_PACKETS << endl;
-	cout << "Data contained in payload: " << binary_to_ascii(data) << endl;
+	cout << "Data contained in payload: \"" << decompiled_data << "\"" << endl;
 	cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
 		
 	echo(analyse_integrity(binary_to_ascii(data), trailer));
 	
 	if(analyse_integrity(binary_to_ascii(data), trailer) == "GOOD")
 	{
-		message += binary_to_ascii(data);
+		message += decompiled_data;
 	}
-	usleep(10);
+	usleep(100);
 }
+
 void save_to_file(string data)
 {
 	cout << endl << "************************************************************" << endl << endl;
 	cout << "Transmission finished!" << endl;
 	ofstream out;
 	out.open("received.txt");
+	
+	cout << message << endl << endl;
 	
 	if(out.fail()){
 		cout << "Error in opening file" << endl;
