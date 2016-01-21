@@ -41,10 +41,12 @@ static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
 static const int MAX_DATA_PACKET_SIZE_BYTES = HEADER_SIZE_BYTES + DATA_SIZE_BYTES + TRAILER_SIZE_BYTES;
 static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
-static const int PORT = 2016;
+static const int SERVER_PORT = 2016;
+static const int CLIENT_PORT = 2015;
 
-struct sockaddr_in client_addr;
+struct sockaddr_in client_addr, server_addr;
 int client_len = sizeof(client_addr);
+int server_len = sizeof(server_addr);
 socklen_t addr_len = sizeof(struct sockaddr);
 int client_socket;
 int req_send, req_recv;
@@ -219,21 +221,31 @@ bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
 
 //start of data transmission ----->
 
-string get_allocated_ip(struct sockaddr_in client_addr)
+string get_allocated_ip(struct sockaddr_in addr)
 {
 	char address[INET_ADDRSTRLEN];
-  return inet_ntop(AF_INET, &(client_addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+  	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+}
+
+void close_connection()
+{
+	close(client_socket);
 }
 
 void open_socket()
 {
-	cout << "Opening connection..." << endl;
-  	close(client_socket);
-	socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	client_addr.sin_family = AF_INET;
-	client_addr.sin_port = htons(PORT);
-	inet_aton("127.0.0.1", &client_addr.sin_addr);
-	cout << "Allocated IP " << get_allocated_ip(client_addr) << ":" << PORT << endl;
+	cout << "SENDING TO " << SERVER_PORT << endl;
+  	close_connection();
+	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	server_addr.sin_family = AF_INET;
+	server_addr.sin_port = htons(SERVER_PORT);
+	inet_aton("127.0.0.1", &server_addr.sin_addr);
+}
+
+void display_connection_info()
+{
+	cout << endl;
+	cout << "Opening connection on " << get_allocated_ip(server_addr) << ":" << SERVER_PORT << "..." << endl;
 }
 
 void send_data(int sequenceNumber, string data_packet)
@@ -241,10 +253,12 @@ void send_data(int sequenceNumber, string data_packet)
 	cout << "Sending packet #" << sequenceNumber << "..." << endl;
 	const char* data = data_packet.c_str();
 	strcpy(buffer, data);
-	req_send = sendto(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
+	
+	req_send = sendto(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &server_addr, sizeof(server_addr));
 	if(req_send == -1)
 	{
-	  cout << "Send error!" << endl;
+		cout << "Send error!" << endl;
+  		close_connection();
 	}
 	else
 	{
@@ -252,29 +266,50 @@ void send_data(int sequenceNumber, string data_packet)
 	}
 }
 
+void receive_echo()
+{
+	close(client_socket);
+	cout << "LISTENING FOR ECHO ON " << CLIENT_PORT << endl;
+	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	client_addr.sin_family = AF_INET;
+	client_addr.sin_port = htons(CLIENT_PORT);
+	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	
+	int result = bind(client_socket, (struct sockaddr*) &client_addr, sizeof(struct sockaddr));
+	if(result == -1)
+	{
+		cout << "Error on binding!" << endl;
+  		close_connection();
+	}
+	else
+	{
+		cout << "Bind successful on " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
+	}
+}
+
 void receive_ack()
 {
 	cout << "Waiting for ack..." << endl;
-	socklen_t client_addr_len = sizeof(client_addr);
-	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr_len);
-	while(1){
-		if(req_recv == -1)
-		{
-			cout << "Returned -1, no connection established..." << endl;
-		}
-		else
-		{
-			string data = buffer;
-			cout << "data received: " << data << endl;
+	receive_echo();
+	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &server_addr, (socklen_t*) &server_addr);
+
+	if(req_recv == -1)
+	{
+		cout << "Returned -1, no connection established..." << endl;
+  		close_connection();
+	}	
+	else
+	{
+		string data = buffer;
+		cout << "ECHO: " << data << endl;
 		
-			if(data == "GOOD")
-			{
-				cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
-			}
-			else if(data == "BAD")
-			{
-				cout << "Server echo: BAD integrity in data, retry packet..." << endl;
-			}
+		if(data == "GOOD")
+		{				
+			cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
+		}
+		else if(data == "BAD")
+		{
+			cout << "Server echo: BAD integrity in data, retry packet..." << endl;
 		}
 	}
 }
@@ -282,7 +317,7 @@ void receive_ack()
 void close_socket()
 {
 	cout << "Closing connection..." << endl;
-	close(client_socket);
+  	close_connection();
 }
 
 //<----- end of data transmission 
@@ -296,11 +331,12 @@ int main()
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
 	//ARRAY_SIZE
-	for(int i = 0; i < 5; i++)
+	for(int i = 0; i < 1; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
 		open_socket();
+		display_connection_info();
 
 		//data processing
 		dataPacket.header_string = to_string(i);

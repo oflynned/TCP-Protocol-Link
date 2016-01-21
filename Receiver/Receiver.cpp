@@ -20,7 +20,8 @@
 
 using namespace std;
 
-static const int PORT = 2016;
+static const int SERVER_PORT = 2016;
+static const int CLIENT_PORT = 2015;
 static const int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
 
@@ -32,18 +33,23 @@ bool isEnd = false;
 
 string message;
 
+string get_allocated_ip(struct sockaddr_in addr)
+{
+	char address[INET_ADDRSTRLEN];
+  	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+}
+
 void start_listener()
 {
+	cout << endl << "************************************************************" << endl << endl;
   	close(server_socket);
 	cout << "Server started..." << endl;
-	server_socket = socket(AF_INET, SOCK_DGRAM, 0);
+	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(PORT);
+	server_addr.sin_port = htons(SERVER_PORT);
 	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	memset(&client_addr, 0, sizeof(client_addr));
 	
 	result = bind(server_socket, (struct sockaddr*) &server_addr, sizeof(struct sockaddr));
-	char address[INET_ADDRSTRLEN];
 	
 	if(result == -1)
 	{
@@ -51,8 +57,19 @@ void start_listener()
 	}
 	else
 	{
-	  cout << "Bind successful, listening on " << inet_ntop(AF_INET, &(server_addr.sin_addr.s_addr), address, INET_ADDRSTRLEN) << ":" << PORT << "..." << endl;
+	  cout << "Bind successful, listening on " << get_allocated_ip(server_addr) << ":" << SERVER_PORT << "..." << endl;
 	}
+}
+
+void start_echo()
+{
+	cout << "starting echo" << endl;
+	close(server_socket);
+	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	client_addr.sin_family = AF_INET;
+	client_addr.sin_port = htons(CLIENT_PORT);
+	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	sleep(1);
 }
 
 static int binary_to_dec(string sequenceNumber)
@@ -123,12 +140,15 @@ string analyse_integrity(string data, string trailer)
 void echo(string result)
 {
 		//establish a new echo connection with the client from the receiving address	
-		socklen_t client_addr_len = sizeof(client_addr);
+		start_echo();
+		socklen_t server_addr_len = sizeof(server_addr);
 		
 		//parse result of integrity check for client packet handling
 		cout << "Echoing " << result << " to client..." << endl;
 		const char* reply = result.c_str();
 		strcpy(buffer, reply);
+		
+		cout << "ECHO TO " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
 		
 		req_send = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 		
@@ -140,7 +160,11 @@ void echo(string result)
 		{
 			cout << "Echo successful to client" << endl;
 		}
+}
 
+void close_connection()
+{
+	close(server_socket);
 }
 
 void receive_data()
@@ -160,7 +184,7 @@ void receive_data()
 		data = received.substr(16, 32);
 		trailer = received.substr(48, 16);
 
-		if(binary_to_dec(header) == 4)
+		if(binary_to_dec(header) == 0)
 		{
 			isEnd = true;
 		}
@@ -192,11 +216,6 @@ void save_to_file(string data)
 		out.close();
 		cout << "File created successfully" << endl << endl;
 	}
-}
-
-void close_connection()
-{
-	close(server_socket);
 }
 
 int main()
