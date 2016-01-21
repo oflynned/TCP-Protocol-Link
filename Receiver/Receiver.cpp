@@ -148,7 +148,8 @@ void echo(string result)
 		const char* reply = result.c_str();
 		strcpy(buffer, reply);
 		
-		cout << "ECHO TO " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
+		cout << "ECHO TO " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT  << endl;
+		cout << buffer << " with size " << strlen(buffer) << endl;
 		
 		req_send = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 		
