@@ -234,7 +234,6 @@ void close_connection()
 
 void open_socket()
 {
-	cout << "SENDING TO " << SERVER_PORT << endl;
   	close_connection();
 	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
@@ -262,7 +261,6 @@ void send_data(int sequenceNumber, string data_packet)
 	}
 	else
 	{
-		cout << endl << "************************************************************" << endl << endl;
 	  	cout << "Packet sent successfully..." << endl << endl;
 	}
 }
@@ -274,7 +272,7 @@ void receive_echo()
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(CLIENT_PORT);
 	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	cout << "LISTENING FOR ECHO ON " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
+	cout << "Listening for echo on " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
 	
 	int result = bind(client_socket, (struct sockaddr*) &client_addr, sizeof(struct sockaddr));
 	if(result == -1)
@@ -296,9 +294,7 @@ void receive_ack()
 	memset(buffer, 0, sizeof(buffer));
 	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
 
-	string data = buffer;
-	cout << "ECHO: " << data << endl;
-	
+	string data = buffer;	
 	if(data == "GOOD")
 	{				
 		cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;

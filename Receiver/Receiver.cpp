@@ -46,9 +46,7 @@ void close_connection()
 
 void start_listener()
 {
-	cout << endl << "************************************************************" << endl << endl;
   	close(server_socket);
-	cout << "Server started..." << endl;
 	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
@@ -68,13 +66,11 @@ void start_listener()
 
 void start_echo()
 {
-	cout << "starting echo" << endl;
 	close(server_socket);
 	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(CLIENT_PORT);
 	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	sleep(1);
 }
 
 static int binary_to_dec(string sequenceNumber)
@@ -153,10 +149,6 @@ void echo(string result)
 		const char* reply = result.c_str();
 		strcpy(buffer, reply);
 		
-		cout << "ECHO TO " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT  << endl;
-		cout << buffer << " with size " << strlen(buffer) << endl;
-		
-		sleep(1);
 		req_send = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 		
 		if(req_send == -1)
@@ -203,11 +195,11 @@ void receive_data()
 	{
 		message += binary_to_ascii(data);
 	}
-	cout << endl << "************************************************************" << endl << endl;
-	cout << "Transmission finished!" << endl;
 }
 void save_to_file(string data)
 {
+	cout << endl << "************************************************************" << endl << endl;
+	cout << "Transmission finished!" << endl;
 	ofstream out;
 	out.open("received.txt");
 	
@@ -222,6 +214,8 @@ void save_to_file(string data)
 
 int main()
 {
+	cout << endl << "************************************************************" << endl << endl;
+	cout << "Server started..." << endl;
  	start_listener();
  	while(!isEnd){receive_data();}
   	save_to_file(message);
