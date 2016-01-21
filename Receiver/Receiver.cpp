@@ -39,6 +39,11 @@ string get_allocated_ip(struct sockaddr_in addr)
   	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
 }
 
+void close_connection()
+{
+	close(server_socket);
+}
+
 void start_listener()
 {
 	cout << endl << "************************************************************" << endl << endl;
@@ -151,6 +156,7 @@ void echo(string result)
 		cout << "ECHO TO " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT  << endl;
 		cout << buffer << " with size " << strlen(buffer) << endl;
 		
+		sleep(1);
 		req_send = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
 		
 		if(req_send == -1)
@@ -161,47 +167,42 @@ void echo(string result)
 		{
 			cout << "Echo successful to client" << endl;
 		}
-}
-
-void close_connection()
-{
-	close(server_socket);
+		close_connection();
 }
 
 void receive_data()
 {
-	do{
-	  req_recv = recvfrom(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
-	  if(req_recv == -1)
-	  {
-		cout << "recv() error" << endl;
-	  }
-	  else
-	  {
-		cout << endl << "************************************************************" << endl << endl;
-		cout << "Retrieved data: " << buffer << endl;
-		string header, data, trailer, received(buffer);
-		header = received.substr(8, 8);
-		data = received.substr(16, 32);
-		trailer = received.substr(48, 16);
-
-		if(binary_to_dec(header) == 0)
-		{
-			isEnd = true;
-		}
-		
-		cout << "Packet " << binary_to_dec(header) << "/255" << endl;
-		cout << "Data contained in payload: " << binary_to_ascii(data) << endl;
-		cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
-		
-		echo(analyse_integrity(binary_to_ascii(data), trailer));
+	memset(buffer, 0, sizeof(buffer));
+	start_listener();
+	req_recv = recvfrom(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
+	 
+	cout << endl << "************************************************************" << endl << endl;
+	cout << "Retrieved data: " << buffer << endl;
+	string header, data, trailer, received(buffer);
+	header = received.substr(8, 8);
+	data = received.substr(16, 32);
+	trailer = received.substr(48, 16);
 	
-		if(analyse_integrity(binary_to_ascii(data), trailer) == "GOOD")
-		{
-			message += binary_to_ascii(data);
-		}
-	} 
-  } while(!isEnd);
+	if(binary_to_dec(header) > 0)
+	{
+		cout << "Reinitialising server listener..." << endl;
+	}
+
+	if(binary_to_dec(header) == 4)
+	{
+		isEnd = true;
+	}
+		
+	cout << "Packet " << binary_to_dec(header) << "/255" << endl;
+	cout << "Data contained in payload: " << binary_to_ascii(data) << endl;
+	cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
+		
+	echo(analyse_integrity(binary_to_ascii(data), trailer));
+	
+	if(analyse_integrity(binary_to_ascii(data), trailer) == "GOOD")
+	{
+		message += binary_to_ascii(data);
+	}
 	cout << endl << "************************************************************" << endl << endl;
 	cout << "Transmission finished!" << endl;
 }
@@ -221,9 +222,9 @@ void save_to_file(string data)
 
 int main()
 {
-  start_listener();
-  receive_data();
-  save_to_file(message);
-  close_connection();
-  return 0;
+ 	start_listener();
+ 	while(!isEnd){receive_data();}
+  	save_to_file(message);
+  	close_connection();
+  	return 0;
 }

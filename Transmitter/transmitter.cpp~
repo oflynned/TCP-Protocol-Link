@@ -262,18 +262,19 @@ void send_data(int sequenceNumber, string data_packet)
 	}
 	else
 	{
-	  cout << "Packet sent successfully..." << endl;
+		cout << endl << "************************************************************" << endl << endl;
+	  	cout << "Packet sent successfully..." << endl << endl;
 	}
 }
 
 void receive_echo()
 {
 	close(client_socket);
-	cout << "LISTENING FOR ECHO ON " << CLIENT_PORT << endl;
 	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(CLIENT_PORT);
 	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	cout << "LISTENING FOR ECHO ON " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
 	
 	int result = bind(client_socket, (struct sockaddr*) &client_addr, sizeof(struct sockaddr));
 	if(result == -1)
@@ -283,7 +284,7 @@ void receive_echo()
 	}
 	else
 	{
-		cout << "Bind successful on " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
+		cout << "Bind successful, listening on " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
 	}
 }
 
@@ -291,26 +292,20 @@ void receive_ack()
 {
 	cout << "Waiting for ack..." << endl;
 	receive_echo();
-	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &server_addr, (socklen_t*) &server_addr);
+	//clear the buffer before proceding to continue as not to overflow it
+	memset(buffer, 0, sizeof(buffer));
+	req_recv = recvfrom(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
 
-	if(req_recv == -1)
+	string data = buffer;
+	cout << "ECHO: " << data << endl;
+	
+	if(data == "GOOD")
+	{				
+		cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
+	}
+	else if(data == "BAD")
 	{
-		cout << "Returned -1, no connection established..." << endl;
-  		close_connection();
-	}	
-	else
-	{
-		string data = buffer;
-		cout << "ECHO: " << data << endl;
-		
-		if(data == "GOOD")
-		{				
-			cout << "Server echo: GOOD integrity in data, sending next packet..." << endl;
-		}
-		else if(data == "BAD")
-		{
-			cout << "Server echo: BAD integrity in data, retry packet..." << endl;
-		}
+		cout << "Server echo: BAD integrity in data, retry packet..." << endl;
 	}
 }
 
@@ -331,7 +326,7 @@ int main()
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
 	//ARRAY_SIZE
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < 5; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
