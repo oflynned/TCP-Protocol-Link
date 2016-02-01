@@ -251,6 +251,8 @@ void display_connection_info()
 
 void send_data(int sequenceNumber, string data_packet)
 {
+	open_socket();
+	usleep(100);
 	cout << "Sending packet #" << sequenceNumber << "..." << endl;
 	const char* data = data_packet.c_str();
 	strcpy(buffer, data);
@@ -366,7 +368,7 @@ int main()
 
 		//wait and receive ack, if echo has integrity, follow through with next packet
 		receive_ack(i, dataPacket.data_string);
-		usleep(100);
+		usleep(1000);
 
 		//reset
 		close_connection();	

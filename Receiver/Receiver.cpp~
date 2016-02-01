@@ -204,7 +204,8 @@ void receive_data()
 void save_to_file(string data)
 {
 	cout << endl << "************************************************************" << endl << endl;
-	cout << "Transmission finished!" << endl;
+	cout << "Transmission finished!" << endl << endl;
+	cout << "Length: " << data.length() << endl;
 	ofstream out;
 	out.open("received.txt");
 	

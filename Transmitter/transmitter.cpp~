@@ -251,6 +251,7 @@ void display_connection_info()
 
 void send_data(int sequenceNumber, string data_packet)
 {
+	open_socket();
 	cout << "Sending packet #" << sequenceNumber << "..." << endl;
 	const char* data = data_packet.c_str();
 	strcpy(buffer, data);
@@ -334,7 +335,7 @@ int main()
 
 	//parse data to packets if successful in binary from ascii chars
 	DATA_PACKET dataPacket;
-	for(int i = 0; i < MAX_PACKETS; i++)
+	for(int i = 0; i <= MAX_PACKETS; i++)
 	{
 		//set up sockets
 		cout << "Packet #" << i << endl;
@@ -366,7 +367,7 @@ int main()
 
 		//wait and receive ack, if echo has integrity, follow through with next packet
 		receive_ack(i, dataPacket.data_string);
-		usleep(100);
+		usleep(1000);
 
 		//reset
 		close_connection();	
