@@ -26,6 +26,9 @@ static const int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
 const int MAX_PACKETS = 255;
 
+static const char* IP_CLIENT = "10.6.68.158";
+static const char* IP_HOST = "10.17.187.1";
+
 int server_socket, result;
 int req_send, req_recv;
 struct sockaddr_in server_addr, client_addr;
@@ -51,7 +54,7 @@ void start_listener()
 	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
-	server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server_addr.sin_addr.s_addr = inet_addr(IP_HOST);
 	
 	result = bind(server_socket, (struct sockaddr*) &server_addr, sizeof(struct sockaddr));
 	
@@ -71,7 +74,7 @@ void start_echo()
 	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(CLIENT_PORT);
-	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	client_addr.sin_addr.s_addr = inet_addr(IP_CLIENT);
 }
 
 static int binary_to_dec(string sequenceNumber)

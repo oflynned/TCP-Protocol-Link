@@ -43,6 +43,8 @@ static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
 static const int SERVER_PORT = 2016;
 static const int CLIENT_PORT = 2015;
+static const char* IP_CLIENT = "10.6.68.158";
+static const char* IP_HOST = "10.17.187.1";
 
 struct sockaddr_in client_addr, server_addr;
 int client_len = sizeof(client_addr);
@@ -240,7 +242,7 @@ void open_socket()
 	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
-	inet_aton("127.0.0.1", &server_addr.sin_addr);
+	inet_aton(IP_HOST, &server_addr.sin_addr);
 }
 
 void display_connection_info()
@@ -275,7 +277,7 @@ void receive_echo()
 	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(CLIENT_PORT);
-	client_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+	client_addr.sin_addr.s_addr = inet_addr(IP_CLIENT);
 	cout << "Listening for echo on " << get_allocated_ip(client_addr) << ":" << CLIENT_PORT << endl;
 	
 	int result = bind(client_socket, (struct sockaddr*) &client_addr, sizeof(struct sockaddr));

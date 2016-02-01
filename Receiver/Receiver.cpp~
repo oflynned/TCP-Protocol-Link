@@ -26,6 +26,9 @@ static const int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
 const int MAX_PACKETS = 255;
 
+static const char* IP_CLIENT = "";
+static const char* IP_HOST = "10.17.187.1";
+
 int server_socket, result;
 int req_send, req_recv;
 struct sockaddr_in server_addr, client_addr;
@@ -204,8 +207,8 @@ void receive_data()
 void save_to_file(string data)
 {
 	cout << endl << "************************************************************" << endl << endl;
-	cout << "Transmission finished!" << endl << endl;
-	cout << "Length: " << data.length() << endl;
+	cout << "Transmission finished!" << endl;
+	cout << "Length: " << data.length() << endl << endl;
 	ofstream out;
 	out.open("received.txt");
 	
