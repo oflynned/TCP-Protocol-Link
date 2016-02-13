@@ -26,8 +26,8 @@ static const int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
 const int MAX_PACKETS = 255;
 
-static const char* IP_CLIENT = "10.6.68.158";
-static const char* IP_HOST = "10.17.187.1";
+static const char* IP_CLIENT = "127.0.0.1";
+static const char* IP_HOST = "127.0.0.1";
 
 int server_socket, result;
 int req_send, req_recv;
@@ -36,6 +36,29 @@ struct sockaddr_in server_addr, client_addr;
 bool isEnd = false;
 
 string message;
+
+string get_allocated_ip(struct sockaddr_in addr);
+string generate_trailer(string data);
+string analyse_integrity(string data, string trailer);
+
+void start_listener();
+void receive_data();
+void echo(string result);
+void close_connection();
+void start_echo();
+void save_to_file(string data);
+static int binary_to_dec(string sequenceNumber);
+bitset<16> generate_checksum(string data, int length);
+
+int main()
+{
+	cout << endl << "************************************************************" << endl << endl;
+	cout << "Server started..." << endl;
+ 	while(!isEnd){receive_data();}
+  	save_to_file(message);
+  	close_connection();
+  	return 0;
+}
 
 string get_allocated_ip(struct sockaddr_in addr)
 {
@@ -50,7 +73,7 @@ void close_connection()
 
 void start_listener()
 {
-  	close(server_socket);
+  close(server_socket);
 	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
@@ -201,7 +224,7 @@ void receive_data()
 	{
 		message += decompiled_data;
 	}
-	usleep(100);
+	usleep(1000);
 }
 
 void save_to_file(string data)
@@ -221,15 +244,4 @@ void save_to_file(string data)
 		out.close();
 		cout << "File created successfully" << endl << endl;
 	}
-}
-
-int main()
-{
-	cout << endl << "************************************************************" << endl << endl;
-	cout << "Server started..." << endl;
- 	start_listener();
- 	while(!isEnd){receive_data();}
-  	save_to_file(message);
-  	close_connection();
-  	return 0;
 }

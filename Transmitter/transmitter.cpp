@@ -43,8 +43,8 @@ static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
 static const int SERVER_PORT = 2016;
 static const int CLIENT_PORT = 2015;
-static const char* IP_CLIENT = "10.6.68.158";
-static const char* IP_HOST = "10.17.187.1";
+static const char* IP_CLIENT = "127.0.0.1";
+static const char* IP_HOST = "127.0.0.1";
 
 struct sockaddr_in client_addr, server_addr;
 int client_len = sizeof(client_addr);
@@ -57,7 +57,95 @@ const static int BUFFER_SIZE = 1024;
 char buffer[BUFFER_SIZE];
 const int MAX_PACKETS = 255;
 
-//<----- end of consts
+struct DATA_PACKET 
+{
+	//data to be sent
+	bitset<HEADER_SIZE_BITS> header;
+	bitset<DATA_SIZE_BITS> data;
+	bitset<TRAILER_SIZE_BITS> trailer;
+	string data_frame;
+
+	//reference value for debug
+	string header_string;
+	string data_string;
+	string trailer_string;
+};
+
+char generate_random_ascii();
+int generate_random_number(int low, int high);
+
+string generate_random_string();
+string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data);
+string get_allocated_ip(struct sockaddr_in addr);
+string get_data();
+
+bitset<HEADER_SIZE_BITS> generate_header(int sequenceNumber);
+bitset<DATA_SIZE_BITS> generate_data(string data);
+bitset<TRAILER_SIZE_BITS> generate_checksum(string data, int length);
+bitset<TRAILER_SIZE_BITS> generate_trailer(string data);
+
+void generate_output_file();
+void split_data(string data);
+void open_socket();
+void close_connection();
+void display_connection_info();
+void send_data(int sequenceNumber, string data_packet);
+void receive_echo();
+void receive_ack(int sequenceNumber, string data);
+
+//<----- end of data transmission 
+
+int main()
+{
+	//generate and parse data
+	generate_output_file();
+	split_data(get_data());
+
+	//parse data to packets if successful in binary from ascii chars
+	DATA_PACKET dataPacket;
+	for(int i = 0; i <= MAX_PACKETS; i++)
+	{
+		//set up sockets
+		cout << "Packet #" << i << endl;
+		open_socket();
+		display_connection_info();
+
+		//data processing
+		dataPacket.header_string = to_string(i);
+		dataPacket.data_string = dataStream[i];
+		dataPacket.trailer_string = dataStream[i];
+
+		dataPacket.header = generate_header(i);
+		dataPacket.data = generate_data(dataStream[i]);
+		dataPacket.trailer = generate_trailer(dataStream[i]);
+
+		cout << "HEADER: " << dataPacket.header_string << " parsed to " << dataPacket.header  << 
+		" (" << dataPacket.header.size() << " bits)" << endl;
+		cout << "DATA: " << dataPacket.data_string << " parsed to " << dataPacket.data << 
+		" (" << dataPacket.data.size() << " bits)" << endl;
+		cout << "TRAILER: checksum for " << dataPacket.trailer_string << " parsed to " << dataPacket.trailer << 
+		" (" << dataPacket.trailer.size() << " bits)" << endl << endl; 
+		
+		dataPacket.data_frame = dataPacket.header.to_string() + dataPacket.data.to_string() + dataPacket.trailer.to_string();
+		cout << "dataframe for packet #" << dataPacket.header_string << endl;
+		cout << dataPacket.data_frame << endl << endl;
+
+		//send the ith packet	
+		send_data(i, dataPacket.data_frame);
+
+		//wait and receive ack, if echo has integrity, follow through with next packet
+		receive_ack(i, dataPacket.data_string);
+		usleep(1000);
+
+		//reset
+		close_connection();	
+
+		cout << endl << "************************************************************" << endl << endl;
+	}
+
+	return 0;
+}
+
 
 //begin random file generation ----->
 
@@ -116,20 +204,6 @@ string get_data()
 	in.close();
 	return output;
 }
-
-struct DATA_PACKET 
-{
-	//data to be sent
-	bitset<HEADER_SIZE_BITS> header;
-	bitset<DATA_SIZE_BITS> data;
-	bitset<TRAILER_SIZE_BITS> trailer;
-	string data_frame;
-
-	//reference value for debug
-	string header_string;
-	string data_string;
-	string trailer_string;
-};
 
 void split_data(string data)
 {	
@@ -194,7 +268,7 @@ string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data)
 {	
 	bitset<16> remainder(data);
 	int random = generate_random_number(0,99);
-	if(random < 20)
+	if(random < 10)
 	{
 		//invoked -- flip checksum bits	
 		remainder = ~remainder;
@@ -228,7 +302,7 @@ bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
 string get_allocated_ip(struct sockaddr_in addr)
 {
 	char address[INET_ADDRSTRLEN];
-  	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+  return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
 }
 
 void close_connection()
@@ -238,7 +312,7 @@ void close_connection()
 
 void open_socket()
 {
-  	close_connection();
+  close_connection();
 	client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(SERVER_PORT);
@@ -284,7 +358,7 @@ void receive_echo()
 	if(result == -1)
 	{
 		cout << "Error on binding!" << endl;
-  		close_connection();
+  	close_connection();
 	}
 	else
 	{
@@ -329,54 +403,3 @@ void receive_ack(int sequenceNumber, string data)
 }
 
 //<----- end of data transmission 
-
-int main()
-{
-	//generate and parse data
-	generate_output_file();
-	split_data(get_data());
-
-	//parse data to packets if successful in binary from ascii chars
-	DATA_PACKET dataPacket;
-	for(int i = 0; i <= MAX_PACKETS; i++)
-	{
-		//set up sockets
-		cout << "Packet #" << i << endl;
-		open_socket();
-		display_connection_info();
-
-		//data processing
-		dataPacket.header_string = to_string(i);
-		dataPacket.data_string = dataStream[i];
-		dataPacket.trailer_string = dataStream[i];
-
-		dataPacket.header = generate_header(i);
-		dataPacket.data = generate_data(dataStream[i]);
-		dataPacket.trailer = generate_trailer(dataStream[i]);
-
-		cout << "HEADER: " << dataPacket.header_string << " parsed to " << dataPacket.header  << 
-		" (" << dataPacket.header.size() << " bits)" << endl;
-		cout << "DATA: " << dataPacket.data_string << " parsed to " << dataPacket.data << 
-		" (" << dataPacket.data.size() << " bits)" << endl;
-		cout << "TRAILER: checksum for " << dataPacket.trailer_string << " parsed to " << dataPacket.trailer << 
-		" (" << dataPacket.trailer.size() << " bits)" << endl << endl; 
-		
-		dataPacket.data_frame = dataPacket.header.to_string() + dataPacket.data.to_string() + dataPacket.trailer.to_string();
-		cout << "dataframe for packet #" << dataPacket.header_string << endl;
-		cout << dataPacket.data_frame << endl << endl;
-
-		//send the ith packet	
-		send_data(i, dataPacket.data_frame);
-
-		//wait and receive ack, if echo has integrity, follow through with next packet
-		receive_ack(i, dataPacket.data_string);
-		usleep(1000);
-
-		//reset
-		close_connection();	
-
-		cout << endl << "************************************************************" << endl << endl;
-	}
-
-	return 0;
-}
