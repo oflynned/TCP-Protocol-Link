@@ -1,247 +1,70 @@
-//data handling
-#include <iostream>
-#include <cstring>
-#include <ctime>
-#include <cstdlib>
-#include <fstream>
-#include <sstream>
-#include <bitset>
-
-//UDP connection
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-
-using namespace std;
-
-static const int SERVER_PORT = 2016;
-static const int CLIENT_PORT = 2015;
-static const int BUFFER_SIZE = 1024;
-char buffer[BUFFER_SIZE];
-const int MAX_PACKETS = 255;
-
-static const char* IP_CLIENT = "127.0.0.1";
-static const char* IP_HOST = "127.0.0.1";
-
-int server_socket, result;
-int req_send, req_recv;
-struct sockaddr_in server_addr, client_addr;
-
-bool isEnd = false;
-
-string message;
-
 string get_allocated_ip(struct sockaddr_in addr);
-string generate_trailer(string data);
+Takes the given socket address struct passed, and returns its IPv4 equivalent for the given machine.
+
+@param struct sockaddr_in addr -> AF_INET representation of the allocated socket address.
+@return a character array of IPv4 type for the machine's local address
+
+bitset<TRAILER_SIZE_BITS> generate_trailer(string data);
+A top level, cascading function which relies on the output of its child functions in order to act as a parent, encapsulating function which invokes trailer checksum generation through taking returned values as the parent function's parameter. Beforehand, the function prepares the data to be passed by reverse-encoding the data passed into the appropriate representation of binary from ascii.
+
+@usage return bitset<TRAILER_SIZE_BITS>(gremlin_checksum(generate_checksum(data_concat, data_concat.length())));
+@param string data -> 
+@return the checksum given the output of the other parameters in a cascading format
+
 string analyse_integrity(string data, string trailer);
+Returns whether or not the checksum matches the integrity for the given payload in the data packet with GOOD or BAD.
+
+@param string data -> data to be examined for its integrity
+@param string trailer -> given checksum parametrised for data integrity checking
 
 void start_listener();
+Kills any open sockets and starts a UDP listener with a bind to a given server IP and port.
+
+@throws exception on incorrect binding
+@param null
+@return null
+
 void receive_data();
+Initialises a listener that receives from a source over the UDP protocol, and accesses data received that is saved under header, data and trailer given certain lengths. Also displays information of given packet to the UI.
+
+@param null
+@return null
+
 void echo(string result);
+Calls an initialiseation of echo to the client of either GOOD or BAD integrity, invoking reinitialisaiton of transmission or incrementation of packet transmission.
+
+@throws exception on send error
+@param string result -> result of GOOD or BAD for client reception
+@return null
+
 void close_connection();
+Kills any connection on the given socket.
+
+@param null
+@return null
+
 void start_echo();
+Kills the current connection and reinitialises to an inverse client-server relationship where the server returns a message to the client of the packet's integrity.
+
+@param null
+@return null
+
 void save_to_file(string data);
+Saves the input from transmission via a buffer to file having displayed its contents to screen.
+
+@throws exception on incorrect file saving
+@param string data ->
+@return null
+
 static int binary_to_dec(string sequenceNumber);
+Helper to convert binary data to a decimal representation from the packet.
+
+@param string sequenceNumber -> binary sequence number to be converted to decimal representation
+@return the decimal representation of the binary string passed via parametrisation
+
 bitset<16> generate_checksum(string data, int length);
+Generates a given checksum on the server side for comparison with the packaged trailer encapsulated in the data frame.
 
-int main()
-{
-	cout << endl << "************************************************************" << endl << endl;
-	cout << "Server started..." << endl;
- 	while(!isEnd){receive_data();}
-  	save_to_file(message);
-  	close_connection();
-  	return 0;
-}
-
-string get_allocated_ip(struct sockaddr_in addr)
-{
-	char address[INET_ADDRSTRLEN];
-  	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
-}
-
-void close_connection()
-{
-	close(server_socket);
-}
-
-void start_listener()
-{
-  close(server_socket);
-	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	server_addr.sin_family = AF_INET;
-	server_addr.sin_port = htons(SERVER_PORT);
-	server_addr.sin_addr.s_addr = inet_addr(IP_HOST);
-	
-	result = bind(server_socket, (struct sockaddr*) &server_addr, sizeof(struct sockaddr));
-	
-	if(result == -1)
-	{
-	  cout << "Bind error with status " << result << "..." << endl;
-	}
-	else
-	{
-	  cout << "Bind successful, listening on " << get_allocated_ip(server_addr) << ":" << SERVER_PORT << "..." << endl;
-	}
-}
-
-void start_echo()
-{
-	close(server_socket);
-	server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	client_addr.sin_family = AF_INET;
-	client_addr.sin_port = htons(CLIENT_PORT);
-	client_addr.sin_addr.s_addr = inet_addr(IP_CLIENT);
-}
-
-static int binary_to_dec(string sequenceNumber)
-{
-  return stoi(sequenceNumber, nullptr, 2);
-}
-
-static string binary_to_ascii(string data)
-{
-  string output;
-  stringstream sstream(data);
-  while(sstream.good())
-  {
-    bitset<8> bits;
-    sstream >> bits;
-    char c = char(bits.to_ulong());
-    output += c;
-  }
-  return output;
-}
-
-bitset<16> generate_checksum(string data, int length){
-	bitset<16> polynomial(65535);
-	bitset<16> remainder(data);
-	bitset<16> divisor(128);
-
-	for(unsigned int bit = 8; bit > 0; bit--)
-	{
-		//check if uppermost bit is 1
-		if((remainder & divisor) == 1)
-		{
-			//XOR remainder with divisor
-			remainder ^= polynomial;
-		}
-		//shift bit into remainder
-		remainder = (remainder << 1);
-	}
-	
-  return (remainder >> 4);
-}
-
-string generate_trailer(string data)
-{	
-	char charArray[data.length()];
-	data.copy(charArray, data.length());
-
-	string bits;
-
-	for(int i = 0; i < data.length(); i++)
-	{	
-		bitset<8> x(charArray[i]);
-		bits += x.to_string();
-	}
-
-	string data_concat = bits.substr(0, 8);
-	
-	return bitset<16>(generate_checksum(data_concat, data_concat.length())).to_string();
-}
-
-string analyse_integrity(string data, string trailer)
-{
-  if(generate_trailer(data) == trailer)
-    return "GOOD";
-    
-  return "BAD";
-}
-
-void echo(string result)
-{
-		//establish a new echo connection with the client from the receiving address	
-		start_echo();
-		socklen_t server_addr_len = sizeof(server_addr);
-		
-		//parse result of integrity check for client packet handling
-		cout << "Echoing " << result << " to client..." << endl;
-		const char* reply = result.c_str();
-		strcpy(buffer, reply);
-		
-		req_send = sendto(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, sizeof(client_addr));
-		
-		if(req_send == -1)
-		{
-			cout << "Send error!" << endl;		
-		}
-		else
-		{
-			cout << "Echo successful to client" << endl;
-		}
-		close_connection();
-}
-
-void receive_data()
-{
-	memset(buffer, 0, sizeof(buffer));
-	start_listener();
-	req_recv = recvfrom(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
-	 
-	cout << endl << "************************************************************" << endl << endl;
-	cout << "Retrieved data: " << buffer << endl;
-	string header, data, trailer, received(buffer);
-	header = received.substr(8, 8);
-	data = received.substr(16, 32);
-	trailer = received.substr(48, 16);
-	
-	if(binary_to_dec(header) > 0)
-	{
-		cout << "Reinitialising server listener..." << endl;
-	}
-
-	if(binary_to_dec(header) == MAX_PACKETS)
-	{
-		isEnd = true;
-	}
-	
-	string decompiled_data = binary_to_ascii(data);
-		
-	cout << "Packet " << binary_to_dec(header) << "/" << MAX_PACKETS << endl;
-	cout << "Data contained in payload: \"" << decompiled_data << "\"" << endl;
-	cout << "Integrity: " << analyse_integrity(binary_to_ascii(data), trailer) << endl;
-		
-	echo(analyse_integrity(binary_to_ascii(data), trailer));
-	
-	if(analyse_integrity(binary_to_ascii(data), trailer) == "GOOD")
-	{
-		message += decompiled_data;
-	}
-	usleep(1000);
-}
-
-void save_to_file(string data)
-{
-	cout << endl << "************************************************************" << endl << endl;
-	cout << "Transmission finished!" << endl;
-	cout << "Length: " << data.length() << endl << endl;
-	ofstream out;
-	out.open("received.txt");
-	
-	cout << message << endl << endl;
-	
-	if(out.fail()){
-		cout << "Error in opening file" << endl;
-	} else {
-		out << data;
-		out.close();
-		cout << "File created successfully" << endl << endl;
-	}
-}
+@param string data -> alphanumeric characters to have a checksum generated for
+@param int length -> length of data 
+@return the checksum for the given character data

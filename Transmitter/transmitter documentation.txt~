@@ -7,7 +7,7 @@ bitset<> data			->	4 character data encapsulated from ascii
 bitset<> trailer	->	generated checksum that may or may not be subject to gremlin_checksum()
 string data_frame	->	the concatenated frame consisting of a header, payload, and trailer
 
-Where each bitset member is a cast to binary representations which are then concatenated into an 8 byte long binary string under data_frame.
+Where each bitset member is a cast to binary representations which are then concatenated into an 8 byte long binary string under data_frame. The struct also contains string representations of the binary members above which allow for debugging of information stored and passed into the struct itself.
 
 char generate_random_ascii();
 A function representing the pseudo-random choice of the predefined alphanumeric character array which generates seeded values for transmission.
