@@ -32,13 +32,13 @@ static const int ARRAY_SIZE = RAW_FILE_SIZE / 4;
 string dataStream[ARRAY_SIZE];
 
 //size of payload parts in bytes
-static const int HEADER_SIZE_BYTES = 2;
+static const int HEADER_SIZE_BYTES = 1;
 static const int HEADER_SIZE_BITS = HEADER_SIZE_BYTES * 8;
 static const int DATA_SIZE_BYTES = 4;
 static const int DATA_SIZE_BITS = DATA_SIZE_BYTES * 8;
 static const int TRAILER_SIZE_BYTES = 2;
 static const int TRAILER_SIZE_BITS = TRAILER_SIZE_BYTES * 8;
-static const int MAX_DATA_PACKET_SIZE_BYTES = HEADER_SIZE_BYTES + DATA_SIZE_BYTES + TRAILER_SIZE_BYTES;
+static const int MAX_DATA_PACKET_SIZE_BYTES = 8;
 static const int MAX_DATA_PACKET_SIZE_BITS = MAX_DATA_PACKET_SIZE_BYTES * 8;
 
 static const int SERVER_PORT = 2016;
@@ -97,6 +97,7 @@ void receive_ack(int sequenceNumber, string data);
 
 bool hasEnding (string const &data, string const &regex);
 string stuff_bits(string data);
+string pad(string data);
 
 //<----- end of data transmission 
 
@@ -140,7 +141,7 @@ int main()
 
 		//wait and receive ack, if echo has integrity, follow through with next packet
 		receive_ack(i, dataPacket.data_string);
-		usleep(1000);
+		usleep(2000);
 
 		//reset
 		close_connection();	
@@ -148,6 +149,9 @@ int main()
 		cout << endl << "************************************************************" << endl << endl;
 	}
 
+  cout << "Original message: " << endl;
+  cout << get_data() << endl << endl;
+  
 	return 0;
 }
 
@@ -331,6 +335,17 @@ string stuff_bits(string data)
   return stuffedSequence;
 }
 
+string pad(string data)
+{
+  cout << "Padding data from " << data.length() << " to " << MAX_DATA_PACKET_SIZE_BITS << " bits..." << endl;
+  if(data.length() < MAX_DATA_PACKET_SIZE_BITS)
+  {
+    while(data.length() < MAX_DATA_PACKET_SIZE_BITS)
+      data+="0";
+  }
+  return data;
+}
+
 //<----- end of data encapsulation
 
 //start of data transmission ----->
@@ -366,7 +381,7 @@ void send_data(int sequenceNumber, string data_packet)
 	open_socket();
 	usleep(100);
 	cout << "Sending packet #" << sequenceNumber << "..." << endl;
-	const char* data = stuff_bits(data_packet).c_str();
+	const char* data = pad(stuff_bits(data_packet)).c_str();
 	strcpy(buffer, data);
 	
 	req_send = sendto(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &server_addr, sizeof(server_addr));

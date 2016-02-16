@@ -204,9 +204,9 @@ void receive_data()
 	cout << "Retrieved data: " << buffer << endl;
 	string header, data, trailer, received(buffer);
 	received = unstuff_bits(received);
-	header = received.substr(8, 8);
-	data = received.substr(16, 32);
-	trailer = received.substr(48, 16);
+	header = received.substr(0, 8);
+	data = received.substr(8, 32);
+	trailer = received.substr(40, 16);
 	
 	if(binary_to_dec(header) > 0)
 	{
@@ -237,7 +237,6 @@ void save_to_file(string data)
 {
 	cout << endl << "************************************************************" << endl << endl;
 	cout << "Transmission finished!" << endl;
-	cout << "Length: " << data.length() << endl << endl;
 	ofstream out;
 	out.open("received.txt");
 	
@@ -260,6 +259,8 @@ bool hasEnding(string const &data, string const &regex) {
 string unstuff_bits(string data)
 {
   //01111101... -> 0111111...
+  
+  cout << data.length() << endl;
   
   cout << "Unstuffing bits..." << endl;
   
