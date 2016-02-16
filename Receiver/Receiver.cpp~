@@ -36,7 +36,6 @@ int req_send, req_recv;
 struct sockaddr_in server_addr, client_addr;
 
 bool isEnd = false;
-
 string message;
 
 string get_allocated_ip(struct sockaddr_in addr);
@@ -60,15 +59,15 @@ int main()
 	cout << endl << "************************************************************" << endl << endl;
 	cout << "Server started..." << endl;
  	while(!isEnd){receive_data();}
-  	save_to_file(message);
-  	close_connection();
-  	return 0;
+  save_to_file(message);
+  close_connection();
+  return 0;
 }
 
 string get_allocated_ip(struct sockaddr_in addr)
 {
 	char address[INET_ADDRSTRLEN];
-  	return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
+  return inet_ntop(AF_INET, &(addr.sin_addr.s_addr), address, INET_ADDRSTRLEN);
 }
 
 void close_connection()
@@ -166,8 +165,7 @@ string analyse_integrity(string data, string trailer)
 {
   if(generate_trailer(data) == trailer)
     return "GOOD";
-    
-  return "BAD";
+  else return "BAD";
 }
 
 void echo(string result)
@@ -201,7 +199,7 @@ void receive_data()
 	req_recv = recvfrom(server_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &client_addr, (socklen_t*) &client_addr);
 	 
 	cout << endl << "************************************************************" << endl << endl;
-	cout << "Retrieved data: " << buffer << endl;
+	cout << "Retrieved data: " << endl << buffer << endl;
 	string header, data, trailer, received(buffer);
 	received = unstuff_bits(received);
 	header = received.substr(0, 8);
@@ -252,22 +250,17 @@ void save_to_file(string data)
 }
 
 bool hasEnding(string const &data, string const &regex) {
-    return data.size() >= regex.size() &&
-           data.compare(data.size() - regex.size(), regex.size(), regex) == 0;
+    return data.size() >= regex.size() && 
+            data.compare(data.size() - regex.size(), regex.size(), regex) == 0;
 }
 
 string unstuff_bits(string data)
 {
   //01111101... -> 0111111...
-  
-  cout << data.length() << endl;
-  
   cout << "Unstuffing bits..." << endl;
   
   char stuffedArray[data.length()];
   data.copy(stuffedArray, data.length());
-  
-  cout << "passed here" << endl;
   
   string currSequence = "", unstuffedSequence = "";
   
@@ -278,7 +271,6 @@ string unstuff_bits(string data)
     
     if(hasEnding(currSequence, regex))
     {
-      cout << "has ending?" << endl;
       currSequence = "";
       i++;
     }

@@ -263,14 +263,13 @@ bitset<TRAILER_SIZE_BITS> generate_checksum(string data, int length){
 	}
 	
 	cout << "Poly " << polynomial << ", Divisor " << divisor << ", CRC " << (remainder >> 4) << endl; 
-	
-    	return (remainder >> 4);
+	return (remainder >> 4);
 }
 
 int generate_random_number(int low, int high) {
-    if (low > high) 
-	return high;
-    return low + (rand() % (high - low + 1));
+  if (low > high) 
+	  return high;
+  else return low + (rand() % (high - low + 1));
 }
 
 string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data)
@@ -300,7 +299,6 @@ bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
 	}
 
 	string data_concat = bits.substr(0, 8);
-	
 	return bitset<TRAILER_SIZE_BITS>(gremlin_checksum(generate_checksum(data_concat, data_concat.length())));
 }
 
@@ -312,7 +310,6 @@ bool hasEnding(string const &data, string const &regex) {
 string stuff_bits(string data)
 {
   //0111111... -> 01111101...
-  
   cout << "Stuffing bits..." << endl;
   
   char stuffedArray[data.length()];
@@ -331,7 +328,6 @@ string stuff_bits(string data)
       stuffedSequence += "0";
     }
   }
-  
   return stuffedSequence;
 }
 
@@ -388,11 +384,11 @@ void send_data(int sequenceNumber, string data_packet)
 	if(req_send == -1)
 	{
 		cout << "Send error!" << endl;
-  		close_connection();
+  	close_connection();
 	}
 	else
 	{
-	  	cout << "Packet sent successfully..." << endl << endl;
+	 	cout << "Packet sent successfully..." << endl << endl;
 	}
 }
 

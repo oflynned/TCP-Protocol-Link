@@ -123,3 +123,23 @@ Instantiation of handling if a packet's echo is good or bad. If bad, another pac
 @param int sequenceNumber -> the debug information for the packet sequence number for UI
 @param string data -> the data packet regenerated and reencapsulated.
 @return null
+
+bool hasEnding (string const &data, string const &regex);
+Boolean test to return whether or not the current string contains the given regex for the given string
+
+@param string data -> data to be analysed for string regex
+@param string regex -> regex for analysis
+@return true given the regex exists at the end of the given string
+
+string stuff_bits(string data);
+Takes the parameter of a string to be stuffed and returns the string in its stuffed format ready for transmission with a given redundancy.
+
+@usage "0111110" -> "01111010"
+@param data -> raw data to be stuffed
+@return the stuffed data in raw format
+
+string pad(string data);
+Given a packet less than the maximum packet length, the packet is padded with post-affixed 0s until the maximum packet length is achieved
+
+@param data -> the data to be padded
+@return the padded data with respect to the maximum packet length

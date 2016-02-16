@@ -68,3 +68,17 @@ Generates a given checksum on the server side for comparison with the packaged t
 @param string data -> alphanumeric characters to have a checksum generated for
 @param int length -> length of data 
 @return the checksum for the given character data
+
+bool hasEnding (string const &data, string const &regex);
+Boolean test to return whether or not the current string contains the given regex for the given string
+
+@param string data -> data to be analysed for string regex
+@param string regex -> regex for analysis
+@return true given the regex exists at the end of the given string
+
+string unstuff_bits(string data);
+Takes the parameter of a string to be unstuffed and returns the string in its unstuffed format ready for interpretation with a given redundancy.
+
+@usage "01111010" -> "0111110"
+@param data -> stuffed data to be unstuffed
+@return the unstuffed data in raw format
