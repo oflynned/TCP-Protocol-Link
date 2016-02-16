@@ -29,6 +29,8 @@ const int MAX_PACKETS = 255;
 static const char* IP_CLIENT = "127.0.0.1";
 static const char* IP_HOST = "127.0.0.1";
 
+static const string regex = "011111";
+
 int server_socket, result;
 int req_send, req_recv;
 struct sockaddr_in server_addr, client_addr;
@@ -49,6 +51,9 @@ void start_echo();
 void save_to_file(string data);
 static int binary_to_dec(string sequenceNumber);
 bitset<16> generate_checksum(string data, int length);
+
+bool hasEnding (string const &data, string const &regex);
+string unstuff_bits(string data);
 
 int main()
 {
@@ -198,6 +203,7 @@ void receive_data()
 	cout << endl << "************************************************************" << endl << endl;
 	cout << "Retrieved data: " << buffer << endl;
 	string header, data, trailer, received(buffer);
+	received = unstuff_bits(received);
 	header = received.substr(8, 8);
 	data = received.substr(16, 32);
 	trailer = received.substr(48, 16);
@@ -224,7 +230,7 @@ void receive_data()
 	{
 		message += decompiled_data;
 	}
-	usleep(100);
+	usleep(1000);
 }
 
 void save_to_file(string data)
@@ -244,4 +250,35 @@ void save_to_file(string data)
 		out.close();
 		cout << "File created successfully" << endl << endl;
 	}
+}
+
+bool hasEnding(string const &data, string const &regex) {
+    return data.size() >= regex.size() &&
+           data.compare(data.size() - regex.size(), regex.size(), regex) == 0;
+}
+
+string unstuff_bits(string data)
+{
+  //01111101... -> 0111111...
+  
+  cout << "Unstuffing bits..." << endl;
+  
+  char stuffedArray[data.length()];
+  data.copy(stuffedArray, data.length());
+  
+  string currSequence = "", unstuffedSequence = "";
+  
+  for(int i = 0; i < data.length(); i++)
+  {
+    currSequence += stuffedArray[i];
+    unstuffedSequence += stuffedArray[i];
+    
+    if(hasEnding(currSequence, regex))
+    {
+      currSequence = "";
+      i++;
+    }
+  }
+  
+  return unstuffedSequence;
 }

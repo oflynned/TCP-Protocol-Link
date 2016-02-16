@@ -46,6 +46,8 @@ static const int CLIENT_PORT = 2015;
 static const char* IP_CLIENT = "127.0.0.1";
 static const char* IP_HOST = "127.0.0.1";
 
+static const string regex = "011111";
+
 struct sockaddr_in client_addr, server_addr;
 int client_len = sizeof(client_addr);
 int server_len = sizeof(server_addr);
@@ -92,6 +94,9 @@ void display_connection_info();
 void send_data(int sequenceNumber, string data_packet);
 void receive_echo();
 void receive_ack(int sequenceNumber, string data);
+
+bool hasEnding (string const &data, string const &regex);
+string stuff_bits(string data);
 
 //<----- end of data transmission 
 
@@ -295,6 +300,37 @@ bitset<TRAILER_SIZE_BITS> generate_trailer(string data)
 	return bitset<TRAILER_SIZE_BITS>(gremlin_checksum(generate_checksum(data_concat, data_concat.length())));
 }
 
+bool hasEnding(string const &data, string const &regex) {
+    return data.size() >= regex.size() &&
+           data.compare(data.size() - regex.size(), regex.size(), regex) == 0;
+}
+
+string stuff_bits(string data)
+{
+  //0111111... -> 01111101...
+  
+  cout << "Stuffing bits..." << endl;
+  
+  char stuffedArray[data.length()];
+  data.copy(stuffedArray, data.length());
+  
+  string currSequence = "", stuffedSequence = "";
+  
+  for(int i = 0; i < data.length(); i++)
+  {
+    currSequence += stuffedArray[i];
+    stuffedSequence += stuffedArray[i];
+    
+    if(hasEnding(currSequence, regex))
+    {
+      currSequence = "";
+      stuffedSequence += "0";
+    }
+  }
+  
+  return stuffedSequence;
+}
+
 //<----- end of data encapsulation
 
 //start of data transmission ----->
@@ -330,7 +366,7 @@ void send_data(int sequenceNumber, string data_packet)
 	open_socket();
 	usleep(100);
 	cout << "Sending packet #" << sequenceNumber << "..." << endl;
-	const char* data = data_packet.c_str();
+	const char* data = stuff_bits(data_packet).c_str();
 	strcpy(buffer, data);
 	
 	req_send = sendto(client_socket, &buffer, BUFFER_SIZE, 0, (struct sockaddr*) &server_addr, sizeof(server_addr));
