@@ -276,7 +276,7 @@ string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data)
 {	
 	bitset<16> remainder(data);
 	int random = generate_random_number(0,99);
-	if(random < 10)
+	if(random < 20)
 	{
 		//invoked -- flip checksum bits	
 		remainder = ~remainder;

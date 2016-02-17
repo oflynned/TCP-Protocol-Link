@@ -276,7 +276,7 @@ string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data)
 {	
 	bitset<16> remainder(data);
 	int random = generate_random_number(0,99);
-	if(random < 10)
+	if(random < 50)
 	{
 		//invoked -- flip checksum bits	
 		remainder = ~remainder;
@@ -384,11 +384,11 @@ void send_data(int sequenceNumber, string data_packet)
 	if(req_send == -1)
 	{
 		cout << "Send error!" << endl;
-  		close_connection();
+  	close_connection();
 	}
 	else
 	{
-	  	cout << "Packet sent successfully..." << endl << endl;
+	 	cout << "Packet sent successfully..." << endl << endl;
 	}
 }
 
