@@ -109,7 +109,7 @@ Utilises the generate\_random\_ascii() function to return 1024 seeded values whi
 string gremlin_checksum(bitset<TRAILER_SIZE_BITS> data);
 \end{lstlisting}
 Takes a parameter of ascii characters, converts the given characters to their binary equivalents, and returns the remainder under the CRC 32 checksum where the chance of generating bit flips is a seeded process which has a ~20\% chance of occurring on each subsequent encoding.\\\\
-@param bitset<> data $\rightarrow$ the data from which the checksum can be seeded and generated\\
+@param bitset$<>$ data $\rightarrow$ the data from which the checksum can be seeded and generated\\
 @return the CRC 32 checksum for the given parameter of data
 
 \begin{lstlisting}
@@ -152,7 +152,8 @@ Takes the conditional parameters of data to be encoded as well as its length, an
 bitset<TRAILER_SIZE_BITS> generate_trailer(string data);
 \end{lstlisting}
 A top level, cascading function which relies on the output of its child functions in order to act as a parent, encapsulating function which invokes trailer checksum generation through taking returned values as the parent function's parameter. Beforehand, the function prepares the data to be passed by reverse-encoding the data passed into the appropriate representation of binary from ascii.\\\\
-@usage return bitset$<$TRAILER\_SIZE\_BITS$>$(gremlin\_checksum(generate\_checksum(data\_concat, data\_concat.length())));\\
+@usage return bitset$<$TRAILER\_SIZE\_BITS$>$(gremlin\_checksum(generate\_checksum(
+\\data\_concat, data\_concat.length())));\\
 @param string data $\rightarrow$ the data to be packaged\\
 @return the checksum given the output of the other parameters in a cascading format
 
@@ -262,6 +263,7 @@ string analyse_integrity(string data, string trailer);
 Returns whether or not the checksum matches the integrity for the given payload in the data packet with GOOD or BAD.\\\\
 @param string data $\rightarrow$ data to be examined for its integrity\\
 @param string trailer $\rightarrow$ given checksum parametrised for data integrity checking
+@return compares the checksum matching regex, if there is a match, then it returns GOOD, else BAD and requests a resend.
 
 \begin{lstlisting}
 void start_listener();
