@@ -1,7 +1,0 @@
-\select@language {english}
-\contentsline {section}{\numberline {1}Documentation}{1}
-\contentsline {subsection}{\numberline {1.1}Transmitter Reference Documentation}{1}
-\contentsline {subsection}{\numberline {1.2}Receiver Reference Documentation}{5}
-\contentsline {section}{\numberline {2}Source Code}{7}
-\contentsline {subsection}{\numberline {2.1}Transmitter.cpp}{7}
-\contentsline {subsection}{\numberline {2.2}Receiver.cpp}{16}
